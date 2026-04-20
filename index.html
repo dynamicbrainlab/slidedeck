@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amsterdam UMC EEG Lab — Dynamic Brain Network Analysis</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=IBM+Plex+Serif:ital,wght@1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --navy:     #0c1b2e;
+      --navy2:    #122337;
+      --teal:     #2596be;
+      --teal-dim: #1a7a9a;
+      --teal-pale:#d0eaf4;
+      --teal-xlt: #edf7fb;
+      --white:    #ffffff;
+      --offwhite: #f4f7fa;
+      --text:     #0c1b2e;
+      --muted:    #5a6a7e;
+      --border:   #dde4ec;
+      --sans: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+      --serif: 'IBM Plex Serif', Georgia, serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); color: var(--text); background: var(--white); overflow-x: hidden; }
+
+    /* ── NAV ─────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 60px;
+      height: 72px;
+      background: transparent;
+      transition: background 0.35s ease, box-shadow 0.35s ease;
+    }
+    nav.scrolled {
+      background: rgba(12,27,46,0.97);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none;
+    }
+    .nav-brand-bar { width: 3px; height: 24px; background: var(--teal); border-radius: 2px; }
+    .nav-brand-text { font-size: 14px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+    .nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.5);
+      text-decoration: none; letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .nav-cta {
+      font-size: 14px; font-weight: 600; color: var(--teal) !important;
+      border: 1px solid rgba(37,150,190,0.4); border-radius: 4px;
+      padding: 8px 20px !important; transition: background 0.2s, color 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--teal) !important; color: #fff !important; }
+
+    /* ── HERO ────────────────────────────────── */
+    #hero {
+      position: relative; height: 100vh; min-height: 640px;
+      background: var(--navy); display: flex; align-items: center;
+      overflow: hidden;
+    }
+    #hero-canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+    }
+    .hero-content {
+      position: relative; z-index: 2;
+      padding: 0 60px; max-width: 900px;
+    }
+    .hero-eyebrow {
+      font-size: 13px; font-weight: 500; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--teal); margin-bottom: 20px;
+      opacity: 0; transform: translateY(16px);
+      animation: fadeUp 0.7s 0.2s ease forwards;
+    }
+    .hero-title {
+      font-size: clamp(48px, 6vw, 88px); font-weight: 700;
+      line-height: 1.04; letter-spacing: -0.025em; color: #fff;
+      margin-bottom: 32px;
+      opacity: 0; transform: translateY(24px);
+      animation: fadeUp 0.8s 0.35s ease forwards;
+    }
+    .hero-title span { color: var(--teal); }
+    .hero-bar {
+      width: 56px; height: 4px; background: var(--teal); border-radius: 2px;
+      margin-bottom: 32px;
+      opacity: 0; animation: fadeUp 0.6s 0.5s ease forwards;
+    }
+    .hero-sub {
+      font-size: clamp(17px, 1.8vw, 22px); font-weight: 300; line-height: 1.6;
+      color: rgba(255,255,255,0.6); max-width: 620px; margin-bottom: 44px;
+      opacity: 0; transform: translateY(16px);
+      animation: fadeUp 0.7s 0.6s ease forwards;
+    }
+    .hero-actions {
+      display: flex; gap: 16px; align-items: center;
+      opacity: 0; animation: fadeUp 0.7s 0.75s ease forwards;
+    }
+    .btn-primary {
+      display: inline-block; padding: 14px 32px;
+      background: var(--teal); color: #fff; font-size: 15px; font-weight: 600;
+      border-radius: 4px; text-decoration: none; letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--teal-dim); transform: translateY(-1px); }
+    .btn-ghost {
+      display: inline-block; padding: 14px 28px;
+      border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);
+      font-size: 15px; font-weight: 500; border-radius: 4px; text-decoration: none;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+    .hero-footer {
+      position: absolute; bottom: 36px; left: 60px;
+      font-size: 13px; color: rgba(255,255,255,0.28); letter-spacing: 0.06em;
+    }
+    .scroll-hint {
+      position: absolute; bottom: 36px; right: 60px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0; animation: fadeUp 0.6s 1.1s ease forwards;
+    }
+    .scroll-hint span { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; }
+    .scroll-line {
+      width: 1px; height: 48px; background: linear-gradient(to bottom, rgba(37,150,190,0.6), transparent);
+      animation: scrollPulse 2s 1.5s ease-in-out infinite;
+    }
+
+    /* ── SECTION SHARED ──────────────────────── */
+    section { padding: 100px 60px; }
+    .section-inner { max-width: 1240px; margin: 0 auto; }
+    .eyebrow {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--teal); margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(32px, 3.5vw, 56px); font-weight: 700;
+      line-height: 1.1; letter-spacing: -0.015em; color: var(--navy);
+      margin-bottom: 20px;
+    }
+    .section-title-white { color: #fff; }
+    .section-bar { width: 48px; height: 3px; background: var(--teal); border-radius: 2px; margin-bottom: 36px; }
+
+    /* ── REVEAL ANIMATIONS ───────────────────── */
+    .reveal {
+      opacity: 0; transform: translateY(32px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-left {
+      opacity: 0; transform: translateX(-32px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal-left.visible { opacity: 1; transform: none; }
+    .reveal-right {
+      opacity: 0; transform: translateX(32px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal-right.visible { opacity: 1; transform: none; }
+
+    /* stagger children */
+    .stagger > * { opacity: 0; transform: translateY(28px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .stagger > *.visible { opacity: 1; transform: none; }
+
+    /* ── ABOUT ───────────────────────────────── */
+    #about { background: var(--white); }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+    }
+    .about-text p { font-size: 18px; line-height: 1.75; color: var(--muted); margin-bottom: 20px; }
+    .about-text p strong { color: var(--navy); }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      border: 1px solid var(--border); background: var(--offwhite);
+    }
+    .stat-box {
+      padding: 44px 40px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .stat-box:nth-child(2n) { border-right: none; }
+    .stat-box:nth-child(3), .stat-box:nth-child(4) { border-bottom: none; }
+    .stat-num {
+      font-size: 64px; font-weight: 700; color: var(--navy);
+      line-height: 1; letter-spacing: -0.03em;
+      display: flex; align-items: flex-end; gap: 4px;
+    }
+    .stat-num .accent { color: var(--teal); }
+    .stat-label { font-size: 15px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+
+    /* ── EXPERTISE ───────────────────────────── */
+    #expertise { background: var(--navy); }
+    #expertise .section-title { color: #fff; }
+    .expertise-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 20px;
+      margin-top: 56px;
+    }
+    .exp-card {
+      padding: 40px 32px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: border-color 0.25s, background 0.25s, transform 0.25s;
+      cursor: default;
+    }
+    .exp-card:hover { border-color: rgba(37,150,190,0.5); background: rgba(37,150,190,0.08); transform: translateY(-4px); }
+    .exp-card.featured { background: rgba(37,150,190,0.15); border-color: rgba(37,150,190,0.4); }
+    .exp-num { font-size: 32px; font-weight: 700; color: var(--teal); margin-bottom: 18px; }
+    .exp-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 14px; line-height: 1.3; }
+    .exp-desc { font-size: 15px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+    /* ── EEG/MEG ─────────────────────────────── */
+    #eegmeg { background: var(--white); }
+    .eegmeg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .eegmeg-visual {
+      background: var(--teal-xlt); border: 1px solid var(--teal-pale);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px; gap: 20px; border-radius: 2px;
+    }
+    .eegmeg-visual figcaption { font-size: 13px; color: var(--muted); font-family: monospace; letter-spacing: 0.04em; text-align: center; }
+    .capability { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 28px; }
+    .cap-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; margin-top: 8px; }
+    .cap-title { font-size: 17px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+    .cap-body { font-size: 16px; color: var(--muted); line-height: 1.6; }
+
+    /* ── TRIALS ──────────────────────────────── */
+    #trials { background: var(--offwhite); }
+    .trials-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 56px; }
+    .trial-card { background: var(--white); padding: 44px 40px; border-top: 4px solid var(--border); transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s; }
+    .trial-card:hover { border-top-color: var(--teal); transform: translateY(-4px); box-shadow: 0 16px 40px rgba(12,27,46,0.08); }
+    .trial-card.featured { background: var(--navy); border-top-color: var(--teal); }
+    .trial-card-title { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 24px; color: var(--navy); }
+    .trial-card.featured .trial-card-title { color: var(--teal); }
+    .trial-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .trial-list li { font-size: 16px; color: var(--muted); padding-left: 16px; border-left: 2px solid var(--border); line-height: 1.45; }
+    .trial-card.featured .trial-list li { color: rgba(255,255,255,0.6); border-left-color: rgba(37,150,190,0.4); }
+
+    /* ── PUBLICATIONS ────────────────────────── */
+    #publications { background: var(--white); }
+    .pubs-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 56px; }
+    .pub-card {
+      border: 1px solid var(--border); padding: 40px 36px;
+      display: flex; flex-direction: column; gap: 14px;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .pub-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(12,27,46,0.07); border-color: var(--teal-pale); }
+    .pub-journal { font-size: 12px; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: 0.1em; }
+    .pub-title { font-size: 17px; font-weight: 600; color: var(--navy); line-height: 1.4; }
+    .pub-abstract { font-size: 15px; color: var(--muted); line-height: 1.6; }
+    .pub-author { font-size: 14px; color: var(--muted); margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    /* ── WHY US ──────────────────────────────── */
+    #whyus { background: var(--navy); }
+    #whyus .section-title { color: #fff; }
+    .whyus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; margin-top: 56px; }
+    .whyus-quote {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(24px, 2.5vw, 36px); line-height: 1.5;
+      color: rgba(255,255,255,0.8); border-left: 3px solid var(--teal);
+      padding-left: 32px; margin-bottom: 24px;
+    }
+    .whyus-attr { font-size: 14px; color: rgba(255,255,255,0.35); letter-spacing: 0.06em; padding-left: 32px; }
+    .diff-item { display: flex; gap: 20px; align-items: flex-start; padding: 28px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .diff-item:last-child { border-bottom: none; }
+    .diff-num { font-size: 22px; font-weight: 700; color: var(--teal); flex-shrink: 0; width: 30px; }
+    .diff-title { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .diff-body { font-size: 15px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+    /* ── CONTACT ─────────────────────────────── */
+    #contact {
+      background: var(--navy2); text-align: center;
+      padding: 120px 60px;
+    }
+    .contact-inner { max-width: 720px; margin: 0 auto; }
+    .contact-title { font-size: clamp(36px, 4vw, 64px); font-weight: 700; color: #fff; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 24px; }
+    .contact-sub { font-size: 18px; color: rgba(255,255,255,0.55); line-height: 1.65; margin-bottom: 48px; }
+    .contact-email { font-size: clamp(18px, 2vw, 28px); font-weight: 500; color: var(--teal); margin-bottom: 16px; }
+    .contact-addr { font-size: 15px; color: rgba(255,255,255,0.35); line-height: 1.8; margin-bottom: 48px; }
+    .contact-divider { width: 48px; height: 1px; background: rgba(255,255,255,0.12); margin: 32px auto; }
+
+    /* ── FOOTER ──────────────────────────────── */
+    footer {
+      background: var(--navy); border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 28px 60px; display: flex; align-items: center; justify-content: space-between;
+    }
+    footer p { font-size: 13px; color: rgba(255,255,255,0.28); }
+
+    /* ── ANIMATIONS ──────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes scrollPulse {
+      0%,100% { opacity: 0.4; transform: scaleY(1); }
+      50%      { opacity: 1;   transform: scaleY(1.1); }
+    }
+
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media (max-width: 1024px) {
+      .expertise-grid  { grid-template-columns: repeat(2,1fr); }
+      .about-grid, .eegmeg-grid, .whyus-grid { grid-template-columns: 1fr; gap: 48px; }
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      section { padding: 72px 24px; }
+      #contact { padding: 80px 24px; }
+      .trials-grid, .pubs-grid { grid-template-columns: 1fr; }
+      .expertise-grid { grid-template-columns: 1fr; }
+      .hero-content { padding: 0 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav id="nav">
+    <a class="nav-brand" href="#hero">
+      <div class="nav-brand-bar"></div>
+      <span class="nav-brand-text">Amsterdam UMC EEG Lab</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#expertise">Expertise</a></li>
+      <li><a href="#trials">Clinical Trials</a></li>
+      <li><a href="#publications">Publications</a></li>
+      <li><a href="#contact" class="nav-cta">Partner With Us</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Clinical Research Partnership</p>
+      <h1 class="hero-title">Dynamic Brain<br>Network Analysis<br><span>in Dementia</span></h1>
+      <div class="hero-bar"></div>
+      <p class="hero-sub">Advanced EEG &amp; MEG biomarkers for drug development, treatment monitoring, and clinical trial support — from the Alzheimer Center Amsterdam.</p>
+      <div class="hero-actions">
+        <a href="#trials" class="btn-primary">Our Clinical Trial Services</a>
+        <a href="#about" class="btn-ghost">Learn More</a>
+      </div>
+    </div>
+    <p class="hero-footer">Embedded in the Alzheimer Center Amsterdam · Amsterdam UMC</p>
+    <div class="scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ── ABOUT ── -->
+  <section id="about">
+    <div class="section-inner about-grid">
+      <div class="about-text reveal-left">
+        <p class="eyebrow">Who We Are</p>
+        <h2 class="section-title">A Specialist Lab at the Heart of Alzheimer Research</h2>
+        <div class="section-bar"></div>
+        <p>Our team of <strong>clinical neurophysiologists, neurologists, and neuroscientists</strong> is embedded in the Alzheimer Center Amsterdam at Amsterdam UMC — one of Europe's foremost dementia research institutions.</p>
+        <p>We specialise in resting-state EEG and MEG, functional network analysis, brain modelling, non-invasive stimulation, and treatment monitoring — with an unbroken focus on dementia for over two decades.</p>
+      </div>
+      <div class="stats-grid reveal-right">
+        <div class="stat-box">
+          <div class="stat-num"><span class="count-up" data-target="20">0</span><span class="accent">+</span></div>
+          <p class="stat-label">Years of EEG/MEG<br>research experience</p>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num"><span class="count-up" data-target="3">0</span></div>
+          <p class="stat-label">Core disciplines:<br>Neurophysiology · Neurology · Neuroscience</p>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" style="font-size:32px; align-items:center;">Alzheimer<br>Center</div>
+          <p class="stat-label" style="margin-top:6px;">Amsterdam UMC<br>Institutional home</p>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num"><span class="count-up" data-target="4">0</span></div>
+          <p class="stat-label">Specialisation areas<br>in brain neurophysiology</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EXPERTISE ── -->
+  <section id="expertise">
+    <div class="section-inner">
+      <p class="eyebrow" style="color:var(--teal);" class="reveal">Our Capabilities</p>
+      <h2 class="section-title section-title-white reveal">Four Areas of Specialisation</h2>
+      <div class="expertise-grid stagger">
+        <div class="exp-card featured">
+          <div class="exp-num">01</div>
+          <div class="exp-title">Advanced EEG &amp; MEG Analysis</div>
+          <p class="exp-desc">Spectral analysis, functional connectivity, novel network biomarker development and validation in dementia populations.</p>
+        </div>
+        <div class="exp-card featured">
+          <div class="exp-num">02</div>
+          <div class="exp-title">Clinical Trial Services</div>
+          <p class="exp-desc">Central EEG analysis, protocol design, quality control, treatment monitoring, and regulatory support for pharma partners.</p>
+        </div>
+        <div class="exp-card">
+          <div class="exp-num">03</div>
+          <div class="exp-title">Brain Network Modelling</div>
+          <p class="exp-desc">Computational modelling of brain dynamics to understand and predict disease progression and treatment response.</p>
+        </div>
+        <div class="exp-card">
+          <div class="exp-num">04</div>
+          <div class="exp-title">Non-Invasive Brain Stimulation</div>
+          <p class="exp-desc">TMS and tDCS protocols with EEG-based outcome measurement and longitudinal monitoring.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EEG/MEG ── -->
+  <section id="eegmeg">
+    <div class="section-inner eegmeg-grid">
+      <div class="reveal-left">
+        <p class="eyebrow">EEG &amp; MEG Analysis</p>
+        <h2 class="section-title">Capturing Brain Dynamics at Every Scale</h2>
+        <div class="section-bar"></div>
+        <div class="capability">
+          <div class="cap-dot"></div>
+          <div>
+            <p class="cap-title">EEG — Scalable &amp; multi-site compatible</p>
+            <p class="cap-body">Captures millisecond-level neuronal dynamics at low cost. Clinically validated and deployable across sites in international trials.</p>
+          </div>
+        </div>
+        <div class="capability">
+          <div class="cap-dot"></div>
+          <div>
+            <p class="cap-title">MEG — High spatial resolution</p>
+            <p class="cap-body">Accesses deep structures including the hippocampus. Superior source localisation for mechanistic and biomarker studies.</p>
+          </div>
+        </div>
+        <div class="capability">
+          <div class="cap-dot"></div>
+          <div>
+            <p class="cap-title">Novel Connectivity &amp; Network Measures</p>
+            <p class="cap-body">Proprietary functional connectivity markers developed and validated as diagnostic and treatment-monitoring biomarkers.</p>
+          </div>
+        </div>
+      </div>
+      <figure class="eegmeg-visual reveal-right">
+        <svg width="420" height="340" viewBox="0 0 420 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="210" cy="155" rx="165" ry="130" stroke="#2596be" stroke-width="1.5" stroke-dasharray="7 5" opacity="0.25"/>
+          <ellipse cx="210" cy="155" rx="95"  ry="78"  stroke="#2596be" stroke-width="1"   stroke-dasharray="4 4" opacity="0.15"/>
+          <circle cx="142" cy="96"  r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="210" cy="60"  r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="278" cy="96"  r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="122" cy="175" r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="177" cy="222" r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="248" cy="227" r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="302" cy="175" r="8" fill="#2596be" opacity="0.75"/>
+          <circle cx="210" cy="155" r="12" fill="#1a7a9a"/>
+          <line x1="142" y1="96"  x2="210" y2="60"  stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="210" y1="60"  x2="278" y2="96"  stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="142" y1="96"  x2="122" y2="175" stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="278" y1="96"  x2="302" y2="175" stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="122" y1="175" x2="177" y2="222" stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="177" y1="222" x2="248" y2="227" stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="248" y1="227" x2="302" y2="175" stroke="#2596be" stroke-width="1.5" opacity="0.5"/>
+          <line x1="210" y1="155" x2="142" y2="96"  stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="210" y1="155" x2="278" y2="96"  stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="210" y1="155" x2="122" y2="175" stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="210" y1="155" x2="302" y2="175" stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="210" y1="155" x2="177" y2="222" stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="210" y1="155" x2="248" y2="227" stroke="#1a7a9a" stroke-width="2" opacity="0.75"/>
+          <line x1="50"  y1="305" x2="370" y2="305" stroke="#dde4ec" stroke-width="1"/>
+          <polyline points="50,305 85,305 97,280 109,330 118,290 128,318 142,305 168,305 182,275 196,335 206,293 217,315 230,305 258,305 276,269 294,341 306,305 340,305 370,305"
+            stroke="#2596be" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <figcaption>Functional network · Resting-state EEG/MEG</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── TRIALS ── -->
+  <section id="trials">
+    <div class="section-inner">
+      <p class="eyebrow reveal">Clinical Trials</p>
+      <h2 class="section-title reveal">End-to-End EEG Services<br>for Drug Development</h2>
+      <div class="trials-grid stagger">
+        <div class="trial-card">
+          <div class="trial-card-title">Protocol Design</div>
+          <ul class="trial-list">
+            <li>EEG/MEG acquisition standards</li>
+            <li>Site training &amp; harmonisation</li>
+            <li>Biomarker pre-specification</li>
+            <li>Regulatory strategy &amp; advice</li>
+          </ul>
+        </div>
+        <div class="trial-card featured">
+          <div class="trial-card-title">Central Analysis</div>
+          <ul class="trial-list">
+            <li>Centralised EEG/MEG processing</li>
+            <li>Quality control &amp; artefact rejection</li>
+            <li>Spectral &amp; network biomarker derivation</li>
+            <li>Longitudinal treatment monitoring</li>
+          </ul>
+        </div>
+        <div class="trial-card">
+          <div class="trial-card-title">Reporting &amp; Advisory</div>
+          <ul class="trial-list">
+            <li>Biomarker analysis reports</li>
+            <li>DSMB &amp; data review support</li>
+            <li>Scientific manuscript support</li>
+            <li>Ongoing scientific consultancy</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PUBLICATIONS ── -->
+  <section id="publications">
+    <div class="section-inner">
+      <p class="eyebrow reveal">Evidence Base</p>
+      <h2 class="section-title reveal">Selected Publications</h2>
+      <div class="pubs-grid stagger">
+        <div class="pub-card">
+          <span class="pub-journal">Network Neuroscience · 2022</span>
+          <h3 class="pub-title">The Joint Permutation Entropy: A Novel Biomarker for Early-Stage Alzheimer's Disease</h3>
+          <p class="pub-abstract">A new EEG measure combining functional connectivity and neuronal variability — validated as a potential early-AD biomarker.</p>
+          <p class="pub-author">Scheijbeler et al.</p>
+        </div>
+        <div class="pub-card" style="background:var(--offwhite);">
+          <span class="pub-journal">Journal of Alzheimer's Disease</span>
+          <h3 class="pub-title">Hippocampal Hyperactivity in Pre-Dementia Alzheimer's: A MEG Study</h3>
+          <p class="pub-abstract">MEG source localisation reveals hippocampal hyperactivity before dementia onset — a window into early pathophysiology.</p>
+          <p class="pub-author">Luppi et al.</p>
+        </div>
+        <div class="pub-card">
+          <span class="pub-journal">Neurobiology of Aging · 2022</span>
+          <h3 class="pub-title">Multi-class Classification of Dementia Subtypes Using MEG Biomarkers</h3>
+          <p class="pub-abstract">MEG-based classification distinguishes cognitive decline and dementia subtypes — supporting differential diagnosis and trial enrichment.</p>
+          <p class="pub-author">Scheijbeler et al.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── WHY US ── -->
+  <section id="whyus">
+    <div class="section-inner">
+      <p class="eyebrow reveal" style="color:var(--teal);">Our Advantage</p>
+      <h2 class="section-title section-title-white reveal">Why Partner With Us</h2>
+      <div class="whyus-grid">
+        <div class="reveal-left">
+          <blockquote class="whyus-quote">
+            "All that we know, all that we are, comes from the way our neurons are connected."
+          </blockquote>
+          <p class="whyus-attr">— Tim Berners-Lee</p>
+        </div>
+        <div class="reveal-right">
+          <div class="diff-item">
+            <div class="diff-num">01</div>
+            <div>
+              <p class="diff-title">Deep Dementia Expertise</p>
+              <p class="diff-body">20+ years exclusively focused on the neurophysiology of dementia — no generalist dilution.</p>
+            </div>
+          </div>
+          <div class="diff-item">
+            <div class="diff-num">02</div>
+            <div>
+              <p class="diff-title">Access to Patient Cohorts</p>
+              <p class="diff-body">Direct connection to the Alzheimer Center Amsterdam's well-characterised, longitudinally followed patient population.</p>
+            </div>
+          </div>
+          <div class="diff-item">
+            <div class="diff-num">03</div>
+            <div>
+              <p class="diff-title">Validated Novel Biomarkers</p>
+              <p class="diff-body">Proprietary EEG/MEG markers published in peer-reviewed journals and ready for trial implementation.</p>
+            </div>
+          </div>
+          <div class="diff-item">
+            <div class="diff-num">04</div>
+            <div>
+              <p class="diff-title">Academic Independence</p>
+              <p class="diff-body">Scientific rigour with the flexibility to operate within pharma timelines and regulatory requirements.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONTACT ── -->
+  <section id="contact">
+    <div class="contact-inner reveal">
+      <p class="eyebrow" style="color:var(--teal); margin-bottom:16px;">Get in Touch</p>
+      <h2 class="contact-title">Let's Work Together</h2>
+      <p class="contact-sub">We welcome conversations on EEG/MEG trial design, biomarker strategy, and clinical research partnerships.</p>
+      <a href="mailto:eeganalysis@amsterdamumc.nl" class="btn-primary" style="margin-bottom:40px; display:inline-block;">eeganalysis@amsterdamumc.nl</a>
+      <div class="contact-divider"></div>
+      <p class="contact-addr">
+        De Boelelaan 1118 · 1081 HV Amsterdam · Netherlands<br>
+        <a href="https://www.wdehaan.com" style="color:rgba(255,255,255,0.35); text-decoration:none;">wdehaan.com</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <p>© 2024 Amsterdam UMC EEG Lab &nbsp;·&nbsp; Alzheimer Center Amsterdam</p>
+    <p>eeganalysis@amsterdamumc.nl</p>
+  </footer>
+
+
+  <script>
+  // ── HERO CANVAS NETWORK ──────────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, nodes = [];
+    const NODE_COUNT = 60;
+    const MAX_DIST = 180;
+
+    function resize() {
+      W = canvas.width  = canvas.offsetWidth;
+      H = canvas.height = canvas.offsetHeight;
+    }
+
+    function init() {
+      resize();
+      nodes = [];
+      for (let i = 0; i < NODE_COUNT; i++) {
+        nodes.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          r: 2 + Math.random() * 2.5
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      // edges
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const d  = Math.hypot(dx, dy);
+          if (d < MAX_DIST) {
+            ctx.strokeStyle = `rgba(37,150,190,${(1 - d / MAX_DIST) * 0.35})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      // nodes
+      nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(37,150,190,0.6)';
+        ctx.fill();
+      });
+    }
+
+    function update() {
+      nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > W) n.vx *= -1;
+        if (n.y < 0 || n.y > H) n.vy *= -1;
+      });
+    }
+
+    let raf;
+    function loop() { update(); draw(); raf = requestAnimationFrame(loop); }
+
+    window.addEventListener('resize', () => { resize(); });
+    init(); loop();
+  })();
+
+  // ── NAV SCROLL ───────────────────────────────────────────────
+  const nav = document.getElementById('nav');
+  const navLinks = document.querySelectorAll('.nav-links a:not(.nav-cta)');
+  const sections = document.querySelectorAll('section[id]');
+
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+
+    // Active nav link
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }, { passive: true });
+
+  // ── SCROLL REVEAL ────────────────────────────────────────────
+  const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+  const staggerParents = document.querySelectorAll('.stagger');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+  revealEls.forEach(el => observer.observe(el));
+
+  const staggerObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        Array.from(e.target.children).forEach((child, i) => {
+          setTimeout(() => child.classList.add('visible'), i * 130);
+        });
+        staggerObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  staggerParents.forEach(el => staggerObserver.observe(el));
+
+  // ── COUNT-UP ─────────────────────────────────────────────────
+  const countEls = document.querySelectorAll('.count-up');
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const target = parseInt(e.target.dataset.target);
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now) {
+          const p = Math.min((now - start) / duration, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          e.target.textContent = Math.round(ease * target);
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        countObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  countEls.forEach(el => countObserver.observe(el));
+  </script>
+</body>
+</html>
